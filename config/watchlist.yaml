@@ -1,0 +1,39 @@
+# 追蹤清單：Actions 每天依這份清單抓價
+#
+# defaults 是所有追蹤項目的預設值，每個 watch 都可以個別覆寫。
+#   origins       出發機場
+#   months_ahead  從本月起往後掃幾個月（含本月）
+#   trip_days     來回票的旅遊天數範圍 [最少, 最多]，含出發與回程當天
+#   trip_types    round_trip = 來回，one_way = 單程
+#   source        資料來源：travelpayouts（主要）或 serpapi（輔助，每月額度有限）
+
+defaults:
+  origins: [TPE, TSA]
+  months_ahead: 6
+  trip_days: [3, 7]
+  trip_types: [round_trip, one_way]
+  currency: TWD
+  source: travelpayouts
+
+# SerpApi 用量控制（免費方案每月 250 次）
+serpapi:
+  monthly_limit: 230     # 到這個數字就停，保留額度給手動測試
+  max_calls_per_run: 7   # 每次執行最多呼叫幾次
+
+watches:
+  - region: japan-kanto
+  - region: japan-kansai
+  - region: japan-hokkaido
+  - region: japan-kyushu
+  - region: korea-seoul
+  - region: korea-busan
+  - region: korea-jeju
+  - region: china-shanghai
+  - region: china-hongkong
+  - region: thailand-bangkok
+
+# 範例：某地區 Travelpayouts 沒有資料時，改用 SerpApi 並縮小範圍
+#  - region: korea-jeju
+#    source: serpapi
+#    origins: [TPE]
+#    trip_types: [round_trip]

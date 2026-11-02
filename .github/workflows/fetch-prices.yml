@@ -1,0 +1,69 @@
+name: 抓取機票價格
+
+on:
+  schedule:
+    # 台灣時間每天 06:17 = UTC 前一天 22:17（台灣 UTC+8，沒有日光節約時間）
+    # 分鐘選 17 而不是 00：整點時 GitHub 排程最擁擠，容易延遲或被略過
+    - cron: "17 22 * * *"
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "只抓指定地區 key（例如 japan-kansai），空白 = 全部"
+        required: false
+        default: ""
+      dry_run:
+        description: "覆蓋率測試：只印出每個航線拿到幾筆資料，不寫檔也不 commit"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-update
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝套件
+        run: pip install -r requirements.txt
+
+      - name: 抓價
+        env:
+          TRAVELPAYOUTS_TOKEN: ${{ secrets.TRAVELPAYOUTS_TOKEN }}
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          # 使用者輸入一律經環境變數傳入，避免被當成指令執行
+          INPUT_REGION: ${{ inputs.region }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(fetch)
+          if [ -n "$INPUT_REGION" ]; then args+=(--region "$INPUT_REGION"); fi
+          if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python -m tracker "${args[@]}"
+
+      - name: Commit 資料
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data
+          if git diff --cached --quiet; then
+            echo "資料沒有變動，不需要 commit"
+            exit 0
+          fi
+          git commit -m "data: 更新機票價格 $(TZ=Asia/Taipei date +%F)"
+          for i in 1 2 3; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

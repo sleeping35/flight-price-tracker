@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>機票價格追蹤</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>機票價格追蹤</h1>
+    <p id="meta" class="muted">載入資料中…</p>
+  </header>
+
+  <main>
+    <form id="filters" class="filters" autocomplete="off">
+      <label>出發地
+        <select name="origin">
+          <option value="TPE">TPE 桃園</option>
+          <option value="TSA">TSA 松山</option>
+          <option value="KHH">KHH 高雄</option>
+          <option value="ALL">全部</option>
+        </select>
+      </label>
+
+      <label>目的地
+        <select name="dest"><option value="ALL">全部</option></select>
+      </label>
+
+      <label>票種
+        <select name="type">
+          <option value="rt">來回</option>
+          <option value="ow">單程</option>
+        </select>
+      </label>
+
+      <fieldset class="range rt-only">
+        <legend>旅遊天數</legend>
+        <input type="number" name="dmin" min="1" max="30" value="3" aria-label="最少天數">
+        <span>～</span>
+        <input type="number" name="dmax" min="1" max="30" value="7" aria-label="最多天數">
+        <span>天</span>
+      </fieldset>
+
+      <fieldset class="range dates">
+        <legend>出發日期</legend>
+        <input type="date" name="from" aria-label="最早出發日">
+        <span>～</span>
+        <input type="date" name="to" aria-label="最晚出發日">
+      </fieldset>
+
+      <label class="rt-only">假日模式
+        <select name="mode">
+          <option value="any">不限</option>
+          <option value="weekend">含週末（包含週六與週日）</option>
+          <option value="holiday">含國定連假（包含整個連假）</option>
+          <option value="leave">最少請假（依請假換連休排序）</option>
+        </select>
+      </label>
+
+      <label class="rt-only">最多請假
+        <input type="number" name="maxleave" min="0" max="30" step="0.5" placeholder="不限">
+      </label>
+
+      <label>最高預算（TWD）
+        <input type="number" name="budget" min="0" step="500" placeholder="不限">
+      </label>
+
+      <label>排序
+        <select name="sort">
+          <option value="price">價格低到高</option>
+          <option value="dep">出發日早到晚</option>
+          <option value="leave" class="rt-only">請假天數少到多</option>
+          <option value="ratio" class="rt-only">每請一天假換最多連休</option>
+        </select>
+      </label>
+
+      <div class="checks">
+        <label class="check"><input type="checkbox" name="direct"> 直飛限定</label>
+        <label class="check rt-only"><input type="checkbox" name="half"> 去回程日算半天假</label>
+      </div>
+    </form>
+
+    <p id="notice" class="notice" hidden></p>
+    <p id="count" class="muted"></p>
+
+    <div class="table-wrap">
+      <table id="results">
+        <thead>
+          <tr>
+            <th>去程</th><th>回程</th><th>天數</th><th>航線</th><th>價格</th>
+            <th>航空</th><th>轉機</th><th>請假</th><th>連休</th><th>假日</th><th>資料日</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="muted">
+    <p>價格來自 Travelpayouts（他人近期搜尋的快取）與 SerpApi Google Flights，可能與實際售價不同，訂票前請點「確認」到 Google Flights 查即時價格。</p>
+    <p id="usage"></p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
