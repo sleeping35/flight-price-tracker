@@ -1,0 +1,58 @@
+# 地區對照表：國家 → 地區 → 機場代碼（IATA）
+#
+# 新增國家或地區的方式：
+#   1. 照下面的格式加一段。國家 key 與地區 key 只能用小寫英文、數字與連字號，
+#      地區 key 在整份檔案中不能重複（建議用「國家-地區」命名）。
+#   2. en 是英文名稱，用來組 Google Flights 的查詢（選整個國家時使用）。
+#   3. 直接在 GitHub 網站上編輯本檔並 commit 到 main，
+#      「更新地區清單」workflow 會自動產生 docs/data/regions.json，網頁下拉選單就會出現新地區。
+
+japan:
+  name: 日本
+  en: Japan
+  regions:
+    japan-kanto:
+      name: 關東（東京）
+      airports: [NRT, HND]
+    japan-kansai:
+      name: 關西（大阪）
+      airports: [KIX, UKB]
+    japan-hokkaido:
+      name: 北海道
+      airports: [CTS, HKD]
+    japan-kyushu:
+      name: 九州
+      airports: [FUK, KMJ, KOJ]
+
+korea:
+  name: 韓國
+  en: South Korea
+  regions:
+    korea-seoul:
+      name: 首爾
+      airports: [ICN, GMP]
+    korea-busan:
+      name: 釜山
+      airports: [PUS]
+    korea-jeju:
+      name: 濟州
+      airports: [CJU]
+
+china:
+  name: 中國
+  en: China
+  regions:
+    china-shanghai:
+      name: 上海
+      airports: [PVG, SHA]
+    china-hongkong:
+      name: 香港
+      airports: [HKG]
+
+thailand:
+  name: 泰國
+  en: Thailand
+  regions:
+    thailand-bangkok:
+      name: 曼谷
+      airports: [BKK, DMK]
