@@ -1,86 +1,55 @@
-"""基本單元測試：不呼叫任何外部 API。執行：python -m pytest"""
+"""單元測試：不呼叫任何外部網站。執行：python -m pytest"""
 from __future__ import annotations
 
-import json
-from datetime import date
+from datetime import date, timedelta
 
-from tracker import storage
-from tracker.config import load_settings, months_from
-from tracker.holidays import find_csv_url, parse_csv
-from tracker.models import FareQuery
-from tracker.secrets import redact
-from tracker.sources.serpapi import SerpApiSource
-from tracker.sources.travelpayouts import TravelpayoutsSource
+import pytest
 
-TODAY = date(2026, 11, 2)
+from tracker.config import ConfigError, load_regions, regions_json
+from tracker.holidays import HolidayError, decode, find_csv_url, parse_csv
 
 
-def row(o="TPE", d="KIX", dep="2026-12-24", ret="2026-12-28", price=9000, stops=0, seen="2026-11-02"):
-    return {"o": o, "d": d, "region": "japan-kansai", "dep": dep, "ret": ret, "days": 5,
-            "price": price, "airline": "IT", "stops": stops, "src": "travelpayouts", "seen": seen}
+def test_regions_load():
+    countries = load_regions()
+    data = regions_json(countries)
+    keys = {r["key"]: r for c in data["countries"] for r in c["regions"]}
+    assert keys["japan-kansai"]["airports"] == ["KIX", "UKB"]
+    assert keys["korea-jeju"]["airports"] == ["CJU"]
 
 
-def test_config_loads_and_expands():
-    s = load_settings()
-    assert "japan-kansai" in s.regions
-    assert s.airport_region["CJU"] == "korea-jeju"
-    assert months_from(date(2026, 11, 2), 3) == ["2026-11", "2026-12", "2027-01"]
+def test_regions_rejects_bad_airport(tmp_path):
+    p = tmp_path / "r.yaml"
+    p.write_text("japan:\n  name: 日本\n  regions:\n    japan-x: {name: X, airports: [KIXX]}\n", encoding="utf-8")
+    with pytest.raises(ConfigError):
+        load_regions(p)
 
 
-def test_dedupe_keeps_cheapest_and_cheapest_direct():
-    rows = [row(price=9000, stops=0), row(price=7000, stops=1), row(price=9500, stops=0)]
-    out = storage.dedupe(rows)
-    assert sorted(r["price"] for r in out) == [7000, 9000]
-
-
-def test_merge_replaces_refreshed_and_keeps_others():
-    old = [row(price=9000), row(d="HND", dep="2026-12-10", ret="2026-12-14", price=8000),
-           row(dep="2026-10-01", ret="2026-10-05")]  # 過去日期
-    new = [row(price=8500)]
-    refreshed = {storage.query_key("TPE", "KIX", False, "2026-12")}
-    out = storage.merge_latest(old, new, refreshed, TODAY)
-    prices = sorted(r["price"] for r in out)
-    assert prices == [8000, 8500]
-
-
-def test_merge_drops_stale_rows():
-    out = storage.merge_latest([row(seen="2026-10-01")], [], set(), TODAY)
-    assert out == []
-
-
-def test_history_appends_and_compacts(tmp_path):
-    storage.update_history(tmp_path, [row(price=9000)], TODAY)
-    storage.update_history(tmp_path, [row(price=8800, seen="2026-11-03")], date(2026, 11, 3))
-    data = json.loads((tmp_path / "history" / "2026-11.json").read_text())
-    assert data["TPE-KIX|rt"]["2026-12-24"] == [["2026-11-02", 9000], ["2026-11-03", 8800]]
-    compacted = storage.compact_history(data, date(2026, 12, 25))
-    assert compacted["TPE-KIX|rt"]["2026-12-24"] == {"min": 8800, "max": 9000, "last": 8800, "n": 2}
-
-
-def test_history_cleanup(tmp_path):
-    h = tmp_path / "history"
-    h.mkdir()
-    for name in ("2024-10", "2024-11", "2026-11"):
-        (h / f"{name}.json").write_text("{}")
-    assert storage.cleanup_history(h, TODAY) == ["2024-10.json"]
+def _calendar(year: int, overrides: dict) -> str:
+    lines = ["西元日期,星期,是否放假,備註"]
+    d = date(year, 1, 1)
+    while d.year == year:
+        off, note = ("2" if d.weekday() >= 5 else "0"), ""
+        if d in overrides:
+            off, note = overrides[d]
+        lines.append(f"{d:%Y%m%d},{'一二三四五六日'[d.weekday()]},{off},{note}")
+        d += timedelta(days=1)
+    return "\n".join(lines)
 
 
 def test_holiday_csv_parse_handles_makeup_workday():
-    lines = ["西元日期,星期,是否放假,備註"]
-    d = date(2026, 1, 1)
-    while d.year == 2026:
-        off = "2" if d.weekday() >= 5 else "0"
-        note = ""
-        if d == date(2026, 1, 1):
-            off, note = "2", "開國紀念日"
-        if d == date(2026, 1, 3):  # 假設這個週六補班
-            off, note = "0", "補行上班"
-        lines.append(f"{d:%Y%m%d},{'一二三四五六日'[d.weekday()]},{off},{note}")
-        d = date.fromordinal(d.toordinal() + 1)
-    data = parse_csv("\n".join(lines), 2026)
+    text = _calendar(2026, {date(2026, 1, 1): ("2", "開國紀念日"), date(2026, 1, 3): ("0", "補行上班")})
+    data = parse_csv(text, 2026)
     assert data["days"]["2026-01-01"] == {"off": True, "note": "開國紀念日"}
-    assert data["days"]["2026-01-03"]["off"] is False
+    assert data["days"]["2026-01-03"]["off"] is False  # 週六補班
+    assert data["days"]["2026-01-04"]["off"] is True
     assert len(data["days"]) == 365
+
+
+def test_holiday_csv_big5_and_incomplete():
+    text = _calendar(2026, {})
+    assert decode(text.encode("cp950")).startswith("西元日期")
+    with pytest.raises(HolidayError):
+        parse_csv("\n".join(text.splitlines()[:100]), 2026)
 
 
 def test_find_csv_url_skips_google_version():
@@ -90,49 +59,4 @@ def test_find_csv_url_skips_google_version():
         {"resourceDescription": "114年中華民國政府行政機關辦公日曆表", "resourceFormat": "CSV", "resourceDownloadUrl": "https://x/114.csv"},
     ]}}
     assert find_csv_url(meta, 2026) == "https://x/115.csv"
-
-
-class FakeResp:
-    def __init__(self, payload, status=200):
-        self._p, self.status_code, self.text = payload, status, json.dumps(payload)
-
-    def json(self):
-        return self._p
-
-
-class FakeSession:
-    def __init__(self, payload):
-        self.payload, self.calls = payload, []
-
-    def get(self, url, params=None, headers=None, timeout=None):
-        self.calls.append((url, params, headers))
-        return FakeResp(self.payload)
-
-
-def test_travelpayouts_parse(monkeypatch):
-    monkeypatch.setenv("TRAVELPAYOUTS_TOKEN", "secret-token-123")
-    payload = {"success": True, "currency": "twd", "data": [
-        {"origin": "TPE", "destination": "OSA", "origin_airport": "TPE", "destination_airport": "KIX",
-         "price": 8900, "airline": "IT", "departure_at": "2026-12-24T07:00:00+08:00",
-         "return_at": "2026-12-28T20:00:00+09:00", "transfers": 0, "return_transfers": 1},
-    ]}
-    session = FakeSession(payload)
-    src = TravelpayoutsSource(session=session)
-    src.min_interval_sec = 0
-    fares = src.search(FareQuery("TPE", "KIX", "2026-12", False, (3, 7)))
-    assert len(fares) == 1 and fares[0].price == 8900 and fares[0].stops == 1 and fares[0].days == 5
-    _, params, headers = session.calls[0]
-    assert "token" not in params and headers["X-Access-Token"] == "secret-token-123"
-
-
-def test_serpapi_plan_picks_friday():
-    src = SerpApiSource(today=TODAY)
-    [q] = src.plan(FareQuery("TPE", "CJU", "2026-12", False, (3, 7)))
-    assert date.fromisoformat(q.depart_date).weekday() == 4
-    assert (date.fromisoformat(q.return_date) - date.fromisoformat(q.depart_date)).days + 1 == 5
-
-
-def test_redact(monkeypatch):
-    monkeypatch.setenv("SERPAPI_KEY", "abcdef123456")
-    assert "abcdef123456" not in redact("GET https://serpapi.com/search?api_key=abcdef123456&q=1")
-    assert redact("token=zzz&x=1") == "token=***&x=1"
+    assert find_csv_url(meta, 2027) is None

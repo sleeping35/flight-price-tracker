@@ -3,11 +3,13 @@
 # 新增國家或地區的方式：
 #   1. 照下面的格式加一段。國家 key 與地區 key 只能用小寫英文、數字與連字號，
 #      地區 key 在整份檔案中不能重複（建議用「國家-地區」命名）。
-#   2. 在 config/watchlist.yaml 的 watches 加上該地區 key，Actions 才會去抓價。
-#   3. push 後到 Actions 手動執行「抓取機票價格」，網頁的下拉選單會自動出現新地區。
+#   2. en 是英文名稱，用來組 Google Flights 的查詢（選整個國家時使用）。
+#   3. 直接在 GitHub 網站上編輯本檔並 commit 到 main，
+#      「更新地區清單」workflow 會自動產生 docs/data/regions.json，網頁下拉選單就會出現新地區。
 
 japan:
   name: 日本
+  en: Japan
   regions:
     japan-kanto:
       name: 關東（東京）
@@ -24,6 +26,7 @@ japan:
 
 korea:
   name: 韓國
+  en: South Korea
   regions:
     korea-seoul:
       name: 首爾
@@ -37,6 +40,7 @@ korea:
 
 china:
   name: 中國
+  en: China
   regions:
     china-shanghai:
       name: 上海
@@ -47,6 +51,7 @@ china:
 
 thailand:
   name: 泰國
+  en: Thailand
   regions:
     thailand-bangkok:
       name: 曼谷

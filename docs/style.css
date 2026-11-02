@@ -63,9 +63,9 @@ table { width: 100%; border-collapse: collapse; background: var(--card); border:
 th, td { padding: 7px 9px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
 th { font-size: 12px; color: var(--muted); font-weight: 600; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
-td.price { font-weight: 700; }
+a.chip { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; margin: 1px 4px 1px 0; text-decoration: none; font-size: 13px; }
+a.chip:hover { border-color: var(--accent); }
 .tag { display: inline-block; background: var(--tag); border-radius: 4px; padding: 0 6px; font-size: 12px; margin-right: 4px; }
-.direct { color: var(--good); }
 a { color: var(--accent); }
 footer { padding-top: 12px; padding-bottom: 32px; font-size: 13px; }
 

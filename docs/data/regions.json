@@ -3,6 +3,7 @@
   {
    "key": "japan",
    "name": "日本",
+   "en": "Japan",
    "regions": [
     {
      "key": "japan-kanto",
@@ -10,8 +11,7 @@
      "airports": [
       "NRT",
       "HND"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "japan-kansai",
@@ -19,8 +19,7 @@
      "airports": [
       "KIX",
       "UKB"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "japan-hokkaido",
@@ -28,8 +27,7 @@
      "airports": [
       "CTS",
       "HKD"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "japan-kyushu",
@@ -38,14 +36,14 @@
       "FUK",
       "KMJ",
       "KOJ"
-     ],
-     "tracked": true
+     ]
     }
    ]
   },
   {
    "key": "korea",
    "name": "韓國",
+   "en": "South Korea",
    "regions": [
     {
      "key": "korea-seoul",
@@ -53,30 +51,28 @@
      "airports": [
       "ICN",
       "GMP"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "korea-busan",
      "name": "釜山",
      "airports": [
       "PUS"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "korea-jeju",
      "name": "濟州",
      "airports": [
       "CJU"
-     ],
-     "tracked": true
+     ]
     }
    ]
   },
   {
    "key": "china",
    "name": "中國",
+   "en": "China",
    "regions": [
     {
      "key": "china-shanghai",
@@ -84,22 +80,21 @@
      "airports": [
       "PVG",
       "SHA"
-     ],
-     "tracked": true
+     ]
     },
     {
      "key": "china-hongkong",
      "name": "香港",
      "airports": [
       "HKG"
-     ],
-     "tracked": true
+     ]
     }
    ]
   },
   {
    "key": "thailand",
    "name": "泰國",
+   "en": "Thailand",
    "regions": [
     {
      "key": "thailand-bangkok",
@@ -107,14 +102,9 @@
      "airports": [
       "BKK",
       "DMK"
-     ],
-     "tracked": true
+     ]
     }
    ]
   }
- ],
- "tracked_origins": [
-  "TPE",
-  "TSA"
  ]
 }

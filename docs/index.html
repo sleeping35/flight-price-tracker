@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>機票價格追蹤</title>
+  <title>機票日期規劃</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
-    <h1>機票價格追蹤</h1>
+    <h1>機票日期規劃</h1>
+    <p class="muted">依假日與請假天數找出最划算的出發日期，再一鍵到 Google Flights 查即時價格。</p>
     <p id="meta" class="muted">載入資料中…</p>
   </header>
 
@@ -19,12 +20,11 @@
           <option value="TPE">TPE 桃園</option>
           <option value="TSA">TSA 松山</option>
           <option value="KHH">KHH 高雄</option>
-          <option value="ALL">全部</option>
         </select>
       </label>
 
       <label>目的地
-        <select name="dest"><option value="ALL">全部</option></select>
+        <select name="dest"></select>
       </label>
 
       <label>票種
@@ -54,29 +54,25 @@
           <option value="any">不限</option>
           <option value="weekend">含週末（包含週六與週日）</option>
           <option value="holiday">含國定連假（包含整個連假）</option>
-          <option value="leave">最少請假（依請假換連休排序）</option>
+          <option value="leave" selected>最少請假（依請假換連休排序）</option>
         </select>
       </label>
 
       <label class="rt-only">最多請假
-        <input type="number" name="maxleave" min="0" max="30" step="0.5" placeholder="不限">
-      </label>
-
-      <label>最高預算（TWD）
-        <input type="number" name="budget" min="0" step="500" placeholder="不限">
+        <input type="number" name="maxleave" min="0" max="30" step="0.5" value="2" placeholder="不限">
       </label>
 
       <label>排序
         <select name="sort">
-          <option value="price">價格低到高</option>
-          <option value="dep">出發日早到晚</option>
+          <option value="ratio" class="rt-only" selected>每請一天假換最多連休</option>
           <option value="leave" class="rt-only">請假天數少到多</option>
-          <option value="ratio" class="rt-only">每請一天假換最多連休</option>
+          <option value="rest" class="rt-only">連休天數多到少</option>
+          <option value="dep">出發日早到晚</option>
         </select>
       </label>
 
       <div class="checks">
-        <label class="check"><input type="checkbox" name="direct"> 直飛限定</label>
+        <label class="check"><input type="checkbox" name="direct"> 只查直飛</label>
         <label class="check rt-only"><input type="checkbox" name="half"> 去回程日算半天假</label>
       </div>
     </form>
@@ -88,8 +84,7 @@
       <table id="results">
         <thead>
           <tr>
-            <th>去程</th><th>回程</th><th>天數</th><th>航線</th><th>價格</th>
-            <th>航空</th><th>轉機</th><th>請假</th><th>連休</th><th>假日</th><th>資料日</th><th></th>
+            <th>去程</th><th>回程</th><th>天數</th><th>請假</th><th>連休</th><th>假日</th><th>查價（Google Flights）</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -98,8 +93,8 @@
   </main>
 
   <footer class="muted">
-    <p>價格來自 Travelpayouts（他人近期搜尋的快取）與 SerpApi Google Flights，可能與實際售價不同，訂票前請點「確認」到 Google Flights 查即時價格。</p>
-    <p id="usage"></p>
+    <p>假日依行政院人事行政總處「行政機關辦公日曆表」，含補班日。請假天數＝行程中的上班日；連休天數＝行程加上緊接在前後的放假日。</p>
+    <p>想要降價通知：在 Google Flights 查詢結果頁打開「追蹤價格」，價格變動時 Google 會寄信通知。</p>
   </footer>
 
   <script src="app.js"></script>

@@ -20,7 +20,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt pytest
-      - name: 單元測試（不呼叫外部 API）
+      - name: 單元測試（不連外部網站）
         run: python -m pytest -q
       - name: 檢查設定檔
         run: python -m tracker regions

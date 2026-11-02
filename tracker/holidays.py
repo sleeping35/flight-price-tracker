@@ -19,8 +19,6 @@ from pathlib import Path
 
 import requests
 
-from .secrets import log
-
 DATASET_API = "https://data.gov.tw/api/v2/rest/dataset/14718"
 
 
@@ -123,7 +121,7 @@ def fetch_year(year: int, url: str | None = None, session: requests.Session | No
         url = find_csv_url(resp.json(), year)
         if not url:
             raise HolidayError(f"資料集裡還沒有 {year} 年（民國 {year - 1911} 年）的 CSV，可能尚未公告")
-    log(f"下載 {year} 年辦公日曆：{url}")
+    print(f"下載 {year} 年辦公日曆：{url}", flush=True)
     resp = s.get(url, timeout=60)
     resp.raise_for_status()
     return parse_csv(decode(resp.content), year)
