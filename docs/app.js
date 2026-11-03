@@ -223,10 +223,17 @@ function td(label, content, cls) {
   return c;
 }
 
+function toggleTypeFields() {
+  const rt = el("type").value === "rt";
+  document.querySelectorAll(".rt-only").forEach((x) => x.classList.toggle("hidden-rt", !rt));
+}
+
 function render() {
   const f = readForm();
   saveToUrl(f);
-  document.querySelectorAll(".rt-only").forEach((x) => x.classList.toggle("hidden-rt", f.type !== "rt"));
+  toggleTypeFields();
+  markMonths();
+  document.getElementById("dirty").hidden = true;
 
   const notice = document.getElementById("notice");
   notice.hidden = state.holidayYears.size > 0;
@@ -234,21 +241,21 @@ function render() {
 
   const rows = compute(f);
   document.getElementById("count").textContent =
-    rows.length > MAX_ROWS ? `符合 ${rows.length.toLocaleString()} 組，顯示前 ${MAX_ROWS} 組` : `符合 ${rows.length.toLocaleString()} 組`;
+    rows.length > MAX_ROWS ? `找到 ${rows.length.toLocaleString()} 組日期，顯示前 ${MAX_ROWS} 組` : `找到 ${rows.length.toLocaleString()} 組日期`;
 
   const targets = (state.destOptions[f.dest] || { targets: [] }).targets;
   const tbody = document.querySelector("#results tbody");
   const frag = document.createDocumentFragment();
   for (const r of rows.slice(0, MAX_ROWS)) {
     const tr = document.createElement("tr");
-    tr.appendChild(td("去程", fmtDate(r.dep)));
-    tr.appendChild(td("回程", r.ret ? fmtDate(r.ret) : "單程"));
-    tr.appendChild(td("天數", r.days ?? "–", "num"));
-    tr.appendChild(td("請假", r.leave === null ? "–" : `${r.leave} 天`, "num"));
-    tr.appendChild(td("連休", r.rest === null ? "–" : `${r.rest} 天`, "num"));
-    const tags = document.createElement("span");
-    for (const t of r.tags) { const s = document.createElement("span"); s.className = "tag"; s.textContent = t; tags.appendChild(s); }
-    tr.appendChild(td("假日", tags));
+    tr.appendChild(td("去程", fmtDate(r.dep), "dep"));
+    tr.appendChild(td("回程", r.ret ? fmtDate(r.ret) : "單程", "ret"));
+    tr.appendChild(td("天數", r.days === null ? "–" : `${r.days} 天`, "num days"));
+    tr.appendChild(td("請假", r.leave === null ? "–" : `${r.leave} 天`, `num leave${r.leave === 0 ? " zero" : ""}`));
+    tr.appendChild(td("連休", r.rest === null ? "–" : `${r.rest} 天`, "num rest"));
+    const tagCell = td("假日", "", "tags");
+    for (const t of r.tags) { const s = document.createElement("span"); s.className = "tag"; s.textContent = t; tagCell.appendChild(s); }
+    tr.appendChild(tagCell);
     const links = document.createElement("span");
     for (const t of targets) {
       const a = document.createElement("a");
@@ -259,10 +266,77 @@ function render() {
       a.textContent = t.code;
       links.appendChild(a);
     }
-    tr.appendChild(td("查價", links));
+    tr.appendChild(td("查價", links, "links"));
+    frag.appendChild(tr);
+  }
+  if (!rows.length) {
+    const tr = document.createElement("tr");
+    const c = document.createElement("td");
+    c.colSpan = 7;
+    c.className = "empty";
+    c.textContent = "沒有符合的日期。可以放寬旅遊天數、最多請假或假日模式再查一次。";
+    tr.appendChild(c);
     frag.appendChild(tr);
   }
   tbody.replaceChildren(frag);
+}
+
+// ---------- 表單控制：天數選單、月份快選、查詢按鈕 ----------
+const DEFAULTS = { origin: "TPE", type: "rt", dmin: "3", dmax: "7", mode: "leave", maxleave: "2", sort: "ratio" };
+
+function fillDays() {
+  for (const name of ["dmin", "dmax"]) {
+    for (let n = 1; n <= 14; n++) el(name).appendChild(new Option(`${n} 天`, String(n)));
+  }
+}
+
+function monthRange(ym) {
+  const [y, m] = ym.split("-").map(Number);
+  const first = `${ym}-01`;
+  const last = addDays(`${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01`, -1);
+  return [first, last];
+}
+
+function fillMonths() {
+  const box = document.getElementById("months");
+  const today = taipeiToday();
+  const add = (label, from, to) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.dataset.from = from;
+    b.dataset.to = to;
+    b.addEventListener("click", () => {
+      el("from").value = from;
+      el("to").value = to;
+      render();
+    });
+    box.appendChild(b);
+  };
+  add("半年內", today, addDays(today, 183));
+  let ym = today.slice(0, 7);
+  for (let i = 0; i < 7; i++) {
+    const [first, last] = monthRange(ym);
+    const [y, m] = ym.split("-").map(Number);
+    add(m === 1 || i === 0 ? `${y}/${m}月` : `${m}月`, first < today ? today : first, last);
+    ym = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  }
+}
+
+function markMonths() {
+  for (const b of document.querySelectorAll("#months button")) {
+    b.classList.toggle("on", b.dataset.from === el("from").value && b.dataset.to === el("to").value);
+  }
+}
+
+function setDefaults() {
+  for (const [k, v] of Object.entries(DEFAULTS)) el(k).value = v;
+  el("dest").selectedIndex = 0;
+  el("direct").checked = false;
+  el("half").checked = false;
+  const today = taipeiToday();
+  el("from").value = today;
+  el("to").value = addDays(today, 183);
 }
 
 async function init() {
@@ -273,16 +347,28 @@ async function init() {
     return;
   }
   fillDestinations();
-  const today = taipeiToday();
-  el("from").value = today;
-  el("to").value = addDays(today, 183);
+  fillDays();
+  fillMonths();
+  setDefaults();
   loadFromUrl();
-  form.addEventListener("input", render);
+
+  // 日期欄位：點整個欄位就打開日曆（瀏覽器支援時）
+  for (const name of ["from", "to"]) {
+    el(name).addEventListener("click", (e) => { try { e.target.showPicker(); } catch (_) { /* 舊瀏覽器忽略 */ } });
+  }
+  form.addEventListener("submit", (e) => { e.preventDefault(); render(); });
+  document.getElementById("reset").addEventListener("click", () => { setDefaults(); render(); });
   form.addEventListener("change", (e) => {
+    const name = e.target.name;
     // 選「最少請假」模式時，排序自動切到「每請一天假換最多連休」
-    if (e.target.name === "mode" && e.target.value === "leave") el("sort").value = "ratio";
-    render();
+    if (name === "mode" && e.target.value === "leave") el("sort").value = "ratio";
+    if (name === "type") toggleTypeFields();
+    // 其他條件按「查詢」才更新
+    markMonths();
+    document.getElementById("dirty").hidden = false;
   });
+  // 排序選單放在結果上方（不在表單裡），改了直接套用
+  el("sort").addEventListener("change", render);
   render();
 }
 
